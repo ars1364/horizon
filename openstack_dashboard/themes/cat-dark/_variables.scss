@@ -37,10 +37,14 @@ $component-active-bg:    $brand-primary;
 
 // ── Tables ──────────────────────────────────────────────────
 $table-bg:            transparent;
-$table-bg-accent:     #1A1917;
-$table-bg-hover:      #242220;
+$table-bg-accent:     #1A1917;   // Bootstrap: .table-striped nth-of-type(odd)
+$table-bg-hover:      #2E2B28;   // Bootstrap + Horizon hover variable
 $table-bg-active:     #2E2B28;
 $table-border-color:  #3D3935;
+// Horizon-specific (openstack_dashboard/static/dashboard/scss/_variables.scss)
+// $table-bg-even defaults to #ffffff — must override here
+$table-bg-odd:        #1A1917;
+$table-bg-even:       #111110;
 
 // ── Buttons ─────────────────────────────────────────────────
 $btn-font-weight:         600;
