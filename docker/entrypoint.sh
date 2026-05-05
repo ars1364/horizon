@@ -9,5 +9,8 @@ cp /app/openstack_dashboard/local/local_settings.docker.py \
 echo "[horizon] Running migrations..."
 python manage.py migrate --noinput
 
+echo "[horizon] Collecting static files..."
+python manage.py collectstatic --noinput --clear -v0
+
 echo "[horizon] Starting development server on 0.0.0.0:8000"
 exec python manage.py runserver 0.0.0.0:8000
