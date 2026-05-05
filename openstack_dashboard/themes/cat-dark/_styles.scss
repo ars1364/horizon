@@ -1,0 +1,379 @@
+// CAT Industrial Dark Theme — additional styles
+// Applied after Bootstrap 3 compilation; targets Horizon-specific markup
+// that isn't covered by Bootstrap variables alone.
+
+// ── Base ────────────────────────────────────────────────────
+html, body {
+  background-color: #111110;
+  color: #F2EFE8;
+}
+
+a {
+  color: #FFC300;
+  &:hover, &:focus { color: #E6AF00; }
+}
+
+// ── Sidebar (left nav) ──────────────────────────────────────
+#sidebar {
+  background-color: #1A1917;
+  border-right: 1px solid #2E2B28;
+
+  .nav-pills > li {
+    > a {
+      color: #A89E90;
+      border-radius: 0;
+      padding: 8px 16px;
+      &:hover {
+        background-color: #2E2B28;
+        color: #FFC300;
+      }
+    }
+    &.active > a,
+    &.active > a:hover,
+    &.active > a:focus {
+      background-color: #FFC300;
+      color: #111110;
+      font-weight: 600;
+    }
+  }
+
+  .nav-stacked > li + li { margin-top: 0; }
+
+  .openstack-resource-icon { color: #FFC300; }
+}
+
+// ── Top navbar ──────────────────────────────────────────────
+.navbar {
+  background-color: #1A1917;
+  border-bottom: 2px solid #FFC300;
+  box-shadow: 0 2px 8px rgba(0,0,0,.6);
+
+  .navbar-brand {
+    color: #FFC300;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    &:hover { color: #E6AF00; }
+  }
+
+  .navbar-nav > li > a {
+    color: #A89E90;
+    &:hover { color: #FFC300; background: transparent; }
+  }
+
+  .navbar-nav > .active > a,
+  .navbar-nav > .open > a {
+    background-color: #111110 !important;
+    color: #FFC300 !important;
+  }
+
+  .dropdown-menu {
+    background-color: #242220;
+    border: 1px solid #3D3935;
+    border-top: 2px solid #FFC300;
+    box-shadow: 0 4px 16px rgba(0,0,0,.7);
+  }
+}
+
+// ── Content area ────────────────────────────────────────────
+#main_content {
+  background-color: #111110;
+}
+
+.container-fluid.main_content {
+  background-color: #111110;
+}
+
+// ── Page header / titles ────────────────────────────────────
+.page-header {
+  border-bottom: 1px solid #3D3935;
+  h1, h2, h3 { color: #F2EFE8; }
+}
+
+// Breadcrumbs
+.breadcrumb {
+  background-color: #1A1917;
+  border-bottom: 1px solid #2E2B28;
+  > li + li:before { color: #514D48; }
+  > .active { color: #A89E90; }
+}
+
+// ── Panels / cards ──────────────────────────────────────────
+.panel {
+  background-color: #1A1917;
+  border-color: #3D3935;
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+
+  .panel-heading {
+    background-color: #242220;
+    border-bottom-color: #3D3935;
+    color: #F2EFE8;
+
+    .panel-title { color: #F2EFE8; font-weight: 600; }
+  }
+
+  .panel-body { background-color: #1A1917; }
+  .panel-footer { background-color: #1A1917; border-top-color: #3D3935; }
+}
+
+.panel-primary {
+  border-color: #FFC300;
+  .panel-heading { background-color: #FFC300; color: #111110; border-color: #FFC300; }
+}
+
+// ── Tables ──────────────────────────────────────────────────
+.table {
+  color: #F2EFE8;
+
+  > thead > tr > th {
+    background-color: #242220;
+    border-bottom: 2px solid #FFC300;
+    color: #FFC300;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: .5px;
+  }
+
+  > tbody > tr {
+    > td { border-top-color: #2E2B28; }
+
+    &:hover > td { background-color: #242220; }
+  }
+
+  > tbody > tr.odd > td  { background-color: #1A1917; }
+  > tbody > tr.even > td { background-color: #111110; }
+
+  &.table-striped > tbody > tr:nth-of-type(odd) > td { background-color: #1A1917; }
+}
+
+// Table row selection checkboxes
+.table tbody tr.selected td { background-color: #2a2000 !important; }
+
+// Table action row (top of data tables)
+.table_actions, .table-caption {
+  background-color: #1A1917;
+  border-bottom: 1px solid #3D3935;
+}
+
+// ── Forms ───────────────────────────────────────────────────
+.form-control {
+  background-color: #242220;
+  border-color: #514D48;
+  color: #F2EFE8;
+
+  &:focus {
+    background-color: #2E2B28;
+    border-color: #FFC300;
+    color: #F2EFE8;
+    box-shadow: 0 0 0 2px rgba(255,195,0,.2);
+  }
+
+  &[disabled], &[readonly] {
+    background-color: #1A1917;
+    color: #6B6560;
+  }
+}
+
+.form-group label { color: #A89E90; font-weight: 500; }
+
+.help-block { color: #6B6560; }
+
+// Select2 overrides (Horizon uses select2)
+.select2-container .select2-choice,
+.select2-container-multi .select2-choices {
+  background: #242220 !important;
+  border-color: #514D48 !important;
+  color: #F2EFE8 !important;
+}
+.select2-drop {
+  background: #242220 !important;
+  border-color: #3D3935 !important;
+  .select2-result-label { color: #F2EFE8; }
+  .select2-results .select2-highlighted { background: #FFC300; color: #111110; }
+}
+
+// ── Buttons ─────────────────────────────────────────────────
+.btn {
+  font-weight: 600;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.btn-default {
+  background-color: #2E2B28;
+  border-color: #514D48;
+  color: #F2EFE8;
+  &:hover, &:focus {
+    background-color: #3D3935;
+    border-color: #6B6560;
+    color: #F2EFE8;
+  }
+}
+
+.btn-primary {
+  background-color: #FFC300;
+  border-color: darken(#FFC300, 8%);
+  color: #111110;
+  &:hover, &:focus {
+    background-color: #E6AF00;
+    border-color: darken(#E6AF00, 8%);
+    color: #111110;
+  }
+  &:active { background-color: #CC9C00; }
+}
+
+.btn-danger {
+  background-color: #D94F3D;
+  border-color: darken(#D94F3D, 8%);
+  color: #F2EFE8;
+}
+
+// ── Modals ──────────────────────────────────────────────────
+.modal-content {
+  background-color: #242220;
+  border-color: #3D3935;
+  box-shadow: 0 8px 32px rgba(0,0,0,.8);
+}
+
+.modal-header {
+  background-color: #2E2B28;
+  border-bottom: 2px solid #FFC300;
+  .modal-title { color: #FFC300; font-weight: 700; }
+  .close { color: #A89E90; opacity: 1; text-shadow: none; &:hover { color: #F2EFE8; } }
+}
+
+.modal-footer { border-top-color: #3D3935; background-color: #1A1917; }
+
+// ── Alerts ──────────────────────────────────────────────────
+.alert {
+  border-left-width: 4px;
+  border-radius: 3px;
+}
+.alert-success { background-color: #112218; border-color: #4CAF6E; color: #4CAF6E; }
+.alert-info    { background-color: #0E1E2E; border-color: #5B9BD5; color: #5B9BD5; }
+.alert-warning { background-color: #2a1f00; border-color: #F59E0B; color: #F59E0B; }
+.alert-danger  { background-color: #2E1713; border-color: #D94F3D; color: #D94F3D; }
+
+// ── Progress bars ───────────────────────────────────────────
+.progress { background-color: #2E2B28; border-radius: 2px; }
+
+// ── Tabs ────────────────────────────────────────────────────
+.nav-tabs {
+  border-bottom: 2px solid #3D3935;
+
+  > li {
+    > a {
+      color: #A89E90;
+      border: 1px solid transparent;
+      border-radius: 3px 3px 0 0;
+      &:hover {
+        background-color: #242220;
+        border-color: #3D3935 #3D3935 transparent;
+        color: #F2EFE8;
+      }
+    }
+    &.active > a,
+    &.active > a:hover,
+    &.active > a:focus {
+      background-color: #111110;
+      border-color: #FFC300 #FFC300 transparent;
+      color: #FFC300;
+      font-weight: 600;
+    }
+  }
+}
+
+// ── Badges & labels ─────────────────────────────────────────
+.badge             { background-color: #514D48; color: #F2EFE8; }
+.label-default     { background-color: #514D48; }
+.label-primary     { background-color: #FFC300; color: #111110; }
+.label-success     { background-color: #4CAF6E; color: #111110; }
+.label-info        { background-color: #5B9BD5; color: #111110; }
+.label-warning     { background-color: #F59E0B; color: #111110; }
+.label-danger      { background-color: #D94F3D; }
+
+// ── Horizon status indicators ───────────────────────────────
+.status_up,   .status-up   { color: #4CAF6E; }
+.status_down, .status-down { color: #D94F3D; }
+.status_unknown             { color: #6B6560; }
+
+// Instance/resource status pills
+.label.status-active  { background-color: #4CAF6E; color: #111110; }
+.label.status-shutoff { background-color: #514D48; }
+.label.status-error   { background-color: #D94F3D; }
+.label.status-build   { background-color: #F59E0B; color: #111110; }
+
+// ── Resource usage charts (donut / pie) ─────────────────────
+.quota-pie-chart .quota-heading { color: #A89E90; }
+.quota-pie-chart .capacity { color: #F2EFE8; }
+
+// ── Horizon-specific: action menus in table rows ─────────────
+.table .actions_column .btn-group .btn {
+  background-color: #2E2B28;
+  border-color: #514D48;
+  color: #A89E90;
+  &:hover { background-color: #3D3935; color: #FFC300; }
+}
+
+// ── Login page ──────────────────────────────────────────────
+.login-wrapper,
+#login-splash {
+  background-color: #111110;
+}
+
+.splash .panel,
+.login .panel {
+  background-color: #1A1917;
+  border: 1px solid #3D3935;
+  border-top: 3px solid #FFC300;
+  box-shadow: 0 8px 32px rgba(0,0,0,.7);
+}
+
+.splash .panel-body h4,
+.login .panel-body h4 {
+  color: #FFC300;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// ── Scrollbars (webkit) ─────────────────────────────────────
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111110; }
+::-webkit-scrollbar-thumb {
+  background: #3D3935;
+  border-radius: 3px;
+  &:hover { background: #FFC300; }
+}
+
+// ── Misc ────────────────────────────────────────────────────
+hr { border-top-color: #2E2B28; }
+blockquote { border-left-color: #FFC300; color: #A89E90; }
+
+pre, code {
+  background-color: #1A1917;
+  color: #FFC300;
+  border-color: #3D3935;
+}
+
+.well {
+  background-color: #1A1917;
+  border-color: #3D3935;
+  color: #A89E90;
+}
+
+.text-muted { color: #6B6560; }
+
+// ── CAT accent strip on active sidebar section ───────────────
+#sidebar .nav > .active {
+  border-left: 3px solid #FFC300;
+}
+
+// ── Floating action buttons ─────────────────────────────────
+.btn-fab {
+  background-color: #FFC300;
+  color: #111110;
+  &:hover { background-color: #E6AF00; }
+}
