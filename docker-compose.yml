@@ -1,0 +1,18 @@
+services:
+  horizon:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      # Source mount — edits on the host reflect instantly (Django auto-reload)
+      - .:/app
+      # Persist SQLite DB and secret key across container restarts
+      - horizon-data:/app/data
+    env_file:
+      - .env
+    # Share host network stack so the container inherits routes to 192.168.204.0/24
+    network_mode: host
+    restart: unless-stopped
+
+volumes:
+  horizon-data:
