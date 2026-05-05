@@ -377,3 +377,120 @@ pre, code {
   color: #111110;
   &:hover { background-color: #E6AF00; }
 }
+
+// ── List groups ──────────────────────────────────────────────
+.list-group-item {
+  background-color: #1A1917;
+  border-color: #3D3935;
+  color: #F2EFE8;
+
+  &:hover, &:focus {
+    background-color: #242220;
+    color: #F2EFE8;
+  }
+
+  &.active, &.active:hover, &.active:focus {
+    background-color: #FFC300;
+    border-color: #FFC300;
+    color: #111110;
+  }
+}
+
+// ── Definition lists (resource detail views) ─────────────────
+dl { color: #F2EFE8; }
+dt { color: #A89E90; font-weight: 600; }
+dd { color: #F2EFE8; }
+
+.dl-horizontal {
+  dt { color: #A89E90; }
+  dd { color: #F2EFE8; }
+}
+
+// Horizon detail view rows
+.detail { color: #F2EFE8; }
+.table.detail > tbody > tr > td,
+.table.detail > tbody > tr > th {
+  border-top-color: #2E2B28;
+  background-color: #1A1917;
+  color: #F2EFE8;
+}
+
+// ── Dropdown menu link states ─────────────────────────────────
+.dropdown-menu {
+  background-color: #242220;
+  border-color: #3D3935;
+
+  > li > a {
+    color: #F2EFE8;
+    &:hover, &:focus {
+      background-color: #FFC300;
+      color: #111110;
+    }
+  }
+
+  > .active > a,
+  > .active > a:hover,
+  > .active > a:focus {
+    background-color: #FFC300;
+    color: #111110;
+  }
+
+  > .disabled > a,
+  > .disabled > a:hover {
+    color: #514D48;
+  }
+
+  .divider { background-color: #3D3935; }
+}
+
+// ── nav-pills outside sidebar (e.g. detail tabs) ──────────────
+.nav-pills {
+  > li {
+    > a {
+      color: #A89E90;
+      &:hover { background-color: #2E2B28; color: #F2EFE8; }
+    }
+    &.active > a,
+    &.active > a:hover,
+    &.active > a:focus {
+      background-color: #FFC300;
+      color: #111110;
+    }
+  }
+}
+
+// ── Horizon inline-edit / expandable table rows ───────────────
+tr.detail-row td { background-color: #1A1917 !important; }
+
+.table > tbody > tr.odd > td,
+.table > tbody > tr:nth-of-type(odd) > td { background-color: #1A1917; }
+
+// ── Pagination ───────────────────────────────────────────────
+.pagination {
+  > li > a,
+  > li > span {
+    background-color: #1A1917;
+    border-color: #3D3935;
+    color: #F2EFE8;
+    &:hover { background-color: #2E2B28; color: #FFC300; border-color: #3D3935; }
+  }
+  > .active > a,
+  > .active > span,
+  > .active > a:hover,
+  > .active > span:hover {
+    background-color: #FFC300;
+    border-color: #FFC300;
+    color: #111110;
+  }
+  > .disabled > a,
+  > .disabled > span { background-color: #1A1917; color: #514D48; border-color: #3D3935; }
+}
+
+// ── Popover / tooltip ────────────────────────────────────────
+.popover {
+  background-color: #242220;
+  border-color: #3D3935;
+  .popover-title { background-color: #2E2B28; color: #FFC300; border-bottom-color: #3D3935; }
+  .popover-content { color: #F2EFE8; }
+}
+.tooltip-inner { background-color: #2E2B28; color: #F2EFE8; }
