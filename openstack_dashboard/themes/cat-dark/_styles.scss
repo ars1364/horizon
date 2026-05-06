@@ -494,3 +494,164 @@ tr.detail-row td { background-color: #1A1917 !important; }
   .popover-content { color: #F2EFE8; }
 }
 .tooltip-inner { background-color: #2E2B28; color: #F2EFE8; }
+
+// ── heat-dashboard Template Generator (Angular Material dark theme) ───────────
+
+// Nav bar
+.md-nav-bar {
+  background-color: #1A1917;
+  border-bottom-color: #3D3935 !important;
+}
+
+md-nav-ink-bar {
+  background-color: #FFC300 !important;
+}
+
+.md-button._md-nav-button {
+  color: #A89E90 !important;
+}
+
+.md-nav-item.md-active .md-button._md-nav-button {
+  color: #FFC300 !important;
+}
+
+// Content
+md-content {
+  background-color: #111110 !important;
+  color: #F2EFE8;
+}
+
+// Toolbars
+md-toolbar {
+  background-color: #1A1917 !important;
+}
+md-toolbar .md-toolbar-tools,
+md-toolbar .md-toolbar-tools h2 {
+  color: #F2EFE8 !important;
+}
+
+// Input containers
+md-input-container label,
+md-input-container .md-placeholder {
+  color: #A89E90 !important;
+}
+md-input-container .md-input {
+  color: #F2EFE8 !important;
+  border-bottom-color: #514D48 !important;
+}
+md-input-container.md-input-focused label {
+  color: #FFC300 !important;
+}
+md-input-container.md-input-focused .md-input {
+  border-bottom-color: #FFC300 !important;
+}
+
+// Select
+.md-select-value {
+  color: #F2EFE8 !important;
+  border-bottom-color: #514D48 !important;
+}
+md-select[disabled] .md-select-value {
+  color: #6B6560 !important;
+}
+md-select-menu,
+md-select-menu md-content {
+  background-color: #242220 !important;
+}
+md-option {
+  color: #F2EFE8;
+  background-color: #242220;
+  &:hover, &.md-focused { background-color: #2E2B28; }
+  &[selected] { color: #FFC300; }
+}
+
+// Menu dropdowns (Manage Drafts etc.)
+md-menu-content {
+  background-color: #242220;
+}
+md-menu-content md-menu-item .md-button {
+  color: #F2EFE8;
+  &:hover { background-color: #2E2B28; color: #FFC300; }
+}
+md-menu-divider { border-color: #3D3935; }
+
+// Dialogs (resource forms)
+md-dialog {
+  background-color: #1A1917;
+  color: #F2EFE8;
+}
+md-dialog md-toolbar,
+md-dialog .md-toolbar-tools {
+  background-color: #2E2B28 !important;
+  color: #FFC300 !important;
+}
+md-dialog-actions,
+md-dialog .md-actions {
+  border-top-color: #3D3935;
+  background-color: #1A1917;
+}
+md-dialog md-content {
+  background-color: #1A1917 !important;
+  color: #F2EFE8;
+}
+
+// FAB action buttons (template, draft, clear)
+.md-button.md-fab.md-primary,
+.md-button.md-fab.md-primary:hover {
+  background-color: #FFC300 !important;
+  color: #111110 !important;
+}
+.md-button.md-fab.md-warn,
+.md-button.md-fab.md-warn:hover {
+  background-color: #D94F3D !important;
+  color: #F2EFE8 !important;
+}
+.md-button.md-fab:not(.md-primary):not(.md-warn) {
+  background-color: #2E2B28 !important;
+  color: #F2EFE8 !important;
+  &:hover { background-color: #3D3935 !important; }
+}
+
+// vis-network canvas
+#canvas_area {
+  border-color: #3D3935 !important;
+  background-color: #111110;
+}
+div.vis-button.vis-back,
+div.vis-button.vis-connect,
+div.vis-button.vis-delete,
+div.vis-button.vis-edit {
+  color: #F2EFE8 !important;
+  background-color: #2E2B28 !important;
+  &:hover { background-color: #3D3935 !important; color: #FFC300 !important; }
+}
+
+// Resource icon rows (hardcoded #fff in hotgen.scss)
+.odd, .even {
+  background-color: #1A1917 !important;
+}
+
+// Chips
+.md-chips md-chip {
+  background-color: #2E2B28 !important;
+  color: #F2EFE8 !important;
+  border-color: #FFC300 !important;
+}
+.md-chips md-chip .md-chip-remove md-icon { color: #A89E90; }
+
+// Angular-notify toast messages
+.cg-notify-message {
+  background-color: #242220;
+  border-color: #514D48;
+  color: #F2EFE8;
+  &.alert-success { background-color: #112218; color: #4CAF6E; border-color: #4CAF6E; }
+  &.alert-danger  { background-color: #2E1713; color: #D94F3D; border-color: #D94F3D; }
+  &.alert-warning { background-color: #2a1f00; color: #F59E0B; border-color: #F59E0B; }
+  &.alert-info    { background-color: #0E1E2E; color: #5B9BD5; border-color: #5B9BD5; }
+}
+
+// Loading spinner overlay
+div.load-block {
+  background-color: rgba(17, 17, 16, 0.85) !important;
+  color: #F2EFE8;
+}
