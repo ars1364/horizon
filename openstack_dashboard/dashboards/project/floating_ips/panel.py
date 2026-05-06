@@ -20,7 +20,7 @@ from openstack_dashboard.utils import settings as setting_utils
 
 
 class FloatingIps(horizon.Panel):
-    name = _("Floating IPs")
+    name = _("LD_Floating IPs")
     slug = 'floating_ips'
     permissions = ('openstack.services.network',)
 

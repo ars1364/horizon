@@ -22,6 +22,6 @@ import horizon
 
 
 class Overview(horizon.Panel):
-    name = _("Overview")
+    name = _("LD_Overview")
     slug = 'overview'
     permissions = ('openstack.services.compute',)

@@ -18,7 +18,7 @@ import horizon
 
 
 class Snapshots(horizon.Panel):
-    name = _("Snapshots")
+    name = _("LD_Snapshots")
     slug = 'snapshots'
     permissions = (
         ('openstack.services.block-storage',

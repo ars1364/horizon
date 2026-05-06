@@ -18,7 +18,7 @@ import horizon
 
 
 class KeyPairs(horizon.Panel):
-    name = _("Key Pairs")
+    name = _("LD_Keys")
     slug = 'key_pairs'
     permissions = ('openstack.services.compute',)
     policy_rules = (("compute", "os_compute_api:os-keypairs:index"),

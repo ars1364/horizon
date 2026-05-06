@@ -20,7 +20,7 @@ import horizon
 
 
 class Backups(horizon.Panel):
-    name = _("Backups")
+    name = _("LD_Backups")
     slug = 'backups'
     permissions = (
         ('openstack.services.block-storage',

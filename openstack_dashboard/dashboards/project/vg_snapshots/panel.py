@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 
 class GroupSnapshots(horizon.Panel):
-    name = _("Group Snapshots")
+    name = _("LD_Group Snapshots")
     slug = 'vg_snapshots'
     permissions = (
         ('openstack.services.block-storage',

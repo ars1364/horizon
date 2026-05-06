@@ -18,7 +18,7 @@ import horizon
 
 
 class Volumes(horizon.Panel):
-    name = _("Volumes")
+    name = _("LD_Volumes")
     slug = 'volumes'
     permissions = (
         ('openstack.services.block-storage',

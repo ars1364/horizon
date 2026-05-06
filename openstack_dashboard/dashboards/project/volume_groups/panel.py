@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 
 
 class VolumeGroups(horizon.Panel):
-    name = _("Groups")
+    name = _("LD_Groups")
     slug = 'volume_groups'
     permissions = (
         ('openstack.services.block-storage',

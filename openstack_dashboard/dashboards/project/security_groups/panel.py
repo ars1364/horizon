@@ -18,6 +18,6 @@ import horizon
 
 
 class SecurityGroups(horizon.Panel):
-    name = _("Security Groups")
+    name = _("LD_Security Groups")
     slug = 'security_groups'
     permissions = ('openstack.services.network',)

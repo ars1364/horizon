@@ -22,6 +22,6 @@ import horizon
 
 
 class NetworkTopology(horizon.Panel):
-    name = _("Network Topology")
+    name = _("LD_Network Topology")
     slug = 'network_topology'
     permissions = ('openstack.services.network', )

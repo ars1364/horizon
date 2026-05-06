@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 class ServerGroups(horizon.Panel):
-    name = _("Server Groups")
+    name = _("LD_Placement Group")
     slug = "server_groups"
     permissions = ('openstack.services.compute',)
     policy_rules = (("compute", "os_compute_api:os-server-groups:index"),)

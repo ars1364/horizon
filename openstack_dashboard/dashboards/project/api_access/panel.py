@@ -18,5 +18,5 @@ import horizon
 
 
 class ApiAccess(horizon.Panel):
-    name = _("API Access")
+    name = _("LD_API Access")
     slug = 'api_access'

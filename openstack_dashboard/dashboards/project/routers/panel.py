@@ -20,7 +20,7 @@ from openstack_dashboard.utils import settings as setting_utils
 
 
 class Routers(horizon.Panel):
-    name = _("Routers")
+    name = _("LD_Routers")
     slug = 'routers'
     permissions = ('openstack.services.network',)
 

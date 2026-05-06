@@ -18,6 +18,6 @@ import horizon
 
 
 class Networks(horizon.Panel):
-    name = _("Networks")
+    name = _("LD_Networks")
     slug = 'networks'
     permissions = ('openstack.services.network',)
