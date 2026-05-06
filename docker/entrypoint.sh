@@ -6,6 +6,14 @@ set -e
 cp /app/openstack_dashboard/local/local_settings.docker.py \
    /app/openstack_dashboard/local/local_settings.py
 
+# Register enabled files from installed plugins into local/enabled/
+for plugin_enabled_dir in \
+    /usr/local/lib/python3.12/site-packages/heat_dashboard/enabled; do
+  if [ -d "$plugin_enabled_dir" ]; then
+    cp "$plugin_enabled_dir"/_*.py /app/openstack_dashboard/local/enabled/
+  fi
+done
+
 echo "[horizon] Running migrations..."
 python manage.py migrate --noinput
 
