@@ -57,6 +57,39 @@
         $scope.currentNavItem = Object.keys(newTypes)[0];
     }
 
+    // Icon tooltip names (resobj.name shown on hover over each resource icon)
+    var ICON_NAME = {
+        'OS__Nova__Server':                   'LD Instance',
+        'OS__Nova__Keypair':                  'LD Key Pair',
+        'OS__Cinder__Volume':                 'LD Volume',
+        'OS__Cinder__VolumeAttachment':       'LD Volume Attachment',
+        'OS__Glance__Image':                  'LD Image',
+        'OS__Neutron__Net':                   'LD Network',
+        'OS__Neutron__Subnet':                'LD Subnet',
+        'OS__Neutron__Router':                'LD Router',
+        'OS__Neutron__FloatingIp':            'LD Floating IP',
+        'OS__Neutron__FloatingIpAssociation': 'LD Floating IP Assoc.',
+        'OS__Neutron__SecurityGroup':         'LD Security Group',
+        'OS__Neutron__Port':                  'LD Port',
+        'OS__Neutron__RouterInterface':       'LD Router Interface',
+        'OS__Heat__AutoScalingGroup':         'LD Auto Scaling Group',
+        'OS__Heat__ResourceGroup':            'LD Placement Group',
+        'OS__Heat__ScalingPolicy':            'LD Scaling Policy',
+        'OS__Swift__Container':               'LD Object Container',
+        'OS__Designate__Zone':                'LD DNS Zone',
+        'OS__Designate__RecordSet':           'LD DNS Record Set'
+    };
+
+    angular.module('horizon.dashboard.project.heat_dashboard.template_generator')
+    // Patch icon.name after all resource .run() blocks have registered icons.
+    // This fixes the tooltip text (resobj.name) shown on hover in the icon sidebar.
+    .run(['hotgenGlobals', function(hotgenGlobals) {
+        var icons = hotgenGlobals.get_resource_icons();
+        for (var key in ICON_NAME) {
+            if (icons[key]) { icons[key].name = ICON_NAME[key]; }
+        }
+    }]);
+
     angular.module('horizon.dashboard.project.heat_dashboard.template_generator')
     .config(['$provide', function($provide) {
         $provide.decorator('$controller', ['$delegate', function($delegate) {
