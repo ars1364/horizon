@@ -1,6 +1,8 @@
 import os
 from horizon.utils import secret_key
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # ── Debug ────────────────────────────────────────────────────
 DEBUG = os.environ.get('DEBUG', 'true').lower() == 'true'
 

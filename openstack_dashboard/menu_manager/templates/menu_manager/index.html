@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Menu Labels" %}{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+  <h1>{% trans "Menu Labels" %}</h1>
+  <p class="text-muted">
+    {% trans "Override any sidebar name. Leave a field blank to restore the default name. Changes take effect within 30 seconds." %}
+  </p>
+</div>
+{% endblock %}
+
+{% block main %}
+{% if messages %}
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'horizon:project:menu_manager:update' %}">
+  {% csrf_token %}
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <span class="panel-title">{% trans "Panel Groups" %}</span>
+    </div>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th style="width:180px">{% trans "Slug" %}</th>
+          <th style="width:200px">{% trans "Current Name" %}</th>
+          <th>{% trans "Custom Override" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}{% if item.type == 'group' %}
+        <tr>
+          <td><code>{{ item.slug }}</code></td>
+          <td>{{ item.current_name }}</td>
+          <td>
+            <input type="hidden" name="slug" value="{{ item.slug }}">
+            <input type="text" name="label" value="{{ item.custom }}"
+                   placeholder="{{ item.current_name }}"
+                   class="form-control input-sm"
+                   style="max-width:300px">
+          </td>
+        </tr>
+        {% endif %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <span class="panel-title">{% trans "Panels" %}</span>
+    </div>
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th style="width:180px">{% trans "Slug" %}</th>
+          <th style="width:200px">{% trans "Current Name" %}</th>
+          <th>{% trans "Custom Override" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}{% if item.type == 'panel' %}
+        <tr>
+          <td><code>{{ item.slug }}</code></td>
+          <td>{{ item.current_name }}</td>
+          <td>
+            <input type="hidden" name="slug" value="{{ item.slug }}">
+            <input type="text" name="label" value="{{ item.custom }}"
+                   placeholder="{{ item.current_name }}"
+                   class="form-control input-sm"
+                   style="max-width:300px">
+          </td>
+        </tr>
+        {% endif %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin-bottom:40px">
+    <button type="submit" class="btn btn-primary">
+      {% trans "Save All Changes" %}
+    </button>
+    <a href="{% url 'horizon:project:menu_manager:index' %}" class="btn btn-default">
+      {% trans "Reset Form" %}
+    </a>
+  </div>
+
+</form>
+{% endblock %}
