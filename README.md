@@ -136,12 +136,6 @@ kolla-ansible deploy -t horizon
 
 ---
 
-## Contributors
+## Maintainer
 
-Special thanks to the people who built and maintain this customized Horizon:
-
-| Contributor | Role |
-|---|---|
-| [@cloudinativesw](https://github.com/cloudinativesw) | Core developer — dark theme, label management, Heat fixes |
-| [@AliHub-Solution](https://github.com/AliHub-Solution) | Collaborator |
-| [@ars1364](https://github.com/ars1364) | Maintainer |
+[@ars1364](https://github.com/ars1364) · [@AliHub-Solution](https://github.com/AliHub-Solution)
