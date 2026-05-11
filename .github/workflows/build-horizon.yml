@@ -5,10 +5,16 @@ on:
     branches: [master]
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      kolla_base:
+        description: "Kolla base image (e.g. local-registry:5000/kolla/horizon:2025.1)"
+        required: false
+        default: ""
 
 env:
-  REGISTRY: ghcr.io
   IMAGE: ghcr.io/chjkh8113/horizon
+  # Default base — override via workflow_dispatch input or update after pushing base to ghcr.io
+  DEFAULT_BASE: ghcr.io/chjkh8113/kolla-horizon-base:2025.1
 
 jobs:
   build-push:
@@ -19,6 +25,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve base image
+        id: base
+        run: |
+          INPUT="${{ github.event.inputs.kolla_base }}"
+          echo "image=${INPUT:-${{ env.DEFAULT_BASE }}}" >> "$GITHUB_OUTPUT"
 
       - name: Log in to ghcr.io
         uses: docker/login-action@v3
@@ -40,6 +52,6 @@ jobs:
             ${{ env.IMAGE }}:2025.1
             ${{ env.IMAGE }}:latest
           build-args: |
-            KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
+            KOLLA_BASE=${{ steps.base.outputs.image }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
