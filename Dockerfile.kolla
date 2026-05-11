@@ -65,7 +65,4 @@ COPY openstack_dashboard/themes/cat-dark/ ${SP}/openstack_dashboard/themes/cat-d
 
 # ── 8. Collect static files with the new theme + JS baked in ─────────────────
 # Kolla normally does this at start. Force it here so the image ships ready.
-RUN ${VENV}/bin/python -c "
-import django, os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'openstack_dashboard.settings'
-" 2>/dev/null || true
+RUN ${VENV}/bin/python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','openstack_dashboard.settings')" 2>/dev/null || true
