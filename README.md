@@ -1,195 +1,147 @@
-# Horizon — OpenStack Dashboard (CAT Lab)
+# Horizon — Customized OpenStack Dashboard
 
-OpenStack Horizon 2025.1 packaged as a single Docker container for the CAT lab cluster.
-Includes the **CAT Industrial Dark** theme and the **Orchestration (Heat)** panel.
-
----
-
-## Quick Start
-
-```bash
-git clone https://github.com/chjkh8113/horizon.git
-cd horizon
-cp .env.example .env          # edit .env — see Configuration below
-docker compose up -d
-```
-
-Open **http://\<host\>:8000** and log in with your OpenStack credentials.
+> Forked from [openstack/horizon](https://opendev.org/openstack/horizon) · Kolla-Ansible ready  
+> Includes **CAT Industrial Dark theme**, **Menu Label Management**, and **Heat label fixes**
 
 ---
 
-## Prerequisites
+## What's Different
 
-| Requirement | Version |
+| Feature | Status |
 |---|---|
-| Docker Engine | 24+ |
-| Docker Compose plugin | v2 |
-| Network access to OpenStack APIs | — |
-
-The container uses `network_mode: host` (see [Network](#network)), so the host machine must have a route to the OpenStack internal network (`192.168.204.0/24` by default).
+| CAT Industrial Dark theme | ✅ Included |
+| Menu / label management panel | ✅ Included |
+| Heat orchestration label fixes | ✅ Fixed |
 
 ---
 
-## Configuration
+## Deploying with Kolla-Ansible
 
-All settings are driven by the `.env` file.  Copy `.env.example` and edit:
+This repo does **not** ship a Dockerfile — containerization is handled by the separate [Kolla](https://opendev.org/openstack/kolla) project via `Dockerfile.j2`. The workflow below builds a custom Horizon image from this fork and points Kolla-Ansible at it.
+
+### Step 1 — Install Kolla (image builder)
 
 ```bash
-cp .env.example .env
+pip install kolla
+# pin to your OpenStack release:
+pip install 'kolla==2025.1'
 ```
 
-| Variable | Default | Description |
-|---|---|---|
-| `OPENSTACK_HOST` | `192.168.204.10` | Controller VIP / API endpoint IP |
-| `OPENSTACK_KEYSTONE_URL` | `http://<HOST>:5000/v3` | Keystone v3 URL |
-| `OPENSTACK_ENDPOINT_TYPE` | `internalURL` | Endpoint type for all API calls |
-| `OPENSTACK_DEFAULT_DOMAIN` | `Default` | Keystone domain |
-| `OPENSTACK_DEFAULT_ROLE` | `member` | Default project role |
-| `DEBUG` | `false` | Django debug mode — **must be `false` in production** |
-| `ALLOWED_HOSTS` | `*` | Comma-separated allowed hostnames/IPs |
-| `DJANGO_SECRET_KEY` | *(auto)* | Django secret key — see [Production](#production) |
-| `HORIZON_DEFAULT_THEME` | `cat-dark` | Default theme (`cat-dark`, `default`, `material`) |
-| `TIME_ZONE` | `UTC` | Django time zone |
+### Step 2 — Configure kolla-build to use this fork
 
----
+Create `/etc/kolla/kolla-build.conf`:
 
-## Production
+```ini
+[DEFAULT]
+base = ubuntu
+install_type = source
+namespace = mycompany
+tag = 2025.1-custom
 
-Before deploying outside a dev environment, make three changes in `.env`:
-
-**1. Disable debug mode**
-```
-DEBUG=false
+[horizon]
+type = git
+location = https://github.com/ars1364/horizon
+reference = master
 ```
 
-**2. Restrict allowed hosts**
+If you need token auth (private fork):
+
+```ini
+[horizon]
+type = git
+location = https://<your-token>@github.com/ars1364/horizon
+reference = master
 ```
-ALLOWED_HOSTS=horizon.yourdomain.com,192.168.x.x
-```
 
-**3. Set a fixed secret key** (so sessions survive container rebuilds)
-```bash
-python3 -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
-```
-Paste the output into `DJANGO_SECRET_KEY=` in `.env`.
-
-> **Note:** The container runs Django's development server (`manage.py runserver`).
-> For a high-traffic deployment, replace `exec python manage.py runserver 0.0.0.0:8000`
-> in `docker/entrypoint.sh` with gunicorn:
-> ```bash
-> exec gunicorn openstack_dashboard.wsgi:application \
->     --bind 0.0.0.0:8000 --workers 4
-> ```
-> Install gunicorn by adding `gunicorn` to `requirements.txt` first.
-> For this lab, `runserver` is sufficient.
-
----
-
-## Building the Image
+### Step 3 — Run a local Docker registry
 
 ```bash
-docker compose build
+docker run -d -p 4000:5000 --restart=always --name registry \
+  -v /data/registry:/var/lib/registry registry:2
 ```
 
-The image is rebuilt automatically when `requirements.txt` changes.  
-Force a full rebuild (no cache):
+### Step 4 — Build and push the Horizon image only
 
 ```bash
-docker compose build --no-cache
+kolla-build \
+  --config-file /etc/kolla/kolla-build.conf \
+  --registry <control-node-ip>:4000 \
+  --namespace mycompany \
+  --tag 2025.1-custom \
+  --push \
+  ^horizon$
 ```
 
----
+This produces: `<control-node-ip>:4000/mycompany/horizon:2025.1-custom`
 
-## Upgrading
+### Step 5 — Tell Kolla-Ansible to use your custom image
+
+In `/etc/kolla/globals.yml`, override **only** Horizon (leaves all other services untouched):
+
+```yaml
+horizon_image_full: "<control-node-ip>:4000/mycompany/horizon:2025.1-custom"
+docker_registry_insecure: true
+```
+
+On **all nodes**, trust the insecure registry in `/etc/docker/daemon.json`:
+
+```json
+{
+  "insecure-registries": ["<control-node-ip>:4000"]
+}
+```
+
+Then restart Docker on all nodes:
 
 ```bash
-git pull
-docker compose build
-docker compose up -d
+systemctl restart docker
 ```
 
-`collectstatic` and `migrate` run automatically on every container start via the entrypoint.
+### Step 6 — Deploy / reconfigure
+
+**Existing cluster (Horizon already deployed):**
+
+```bash
+kolla-ansible reconfigure -t horizon
+```
+
+**Fresh deploy:**
+
+```bash
+kolla-ansible deploy -t horizon
+```
 
 ---
 
-## Architecture
+## How It Works
 
-### Container startup sequence (`docker/entrypoint.sh`)
+```
+1. Fork openstack/horizon → this repo
+2. kolla-build.conf → [horizon] type=git, location=this repo
+3. kolla-build --registry <local-reg> --push ^horizon$
+4. globals.yml → horizon_image_full: "<registry>/horizon:<tag>"
+5. kolla-ansible deploy / reconfigure -t horizon
+```
 
-1. Copy `local_settings.docker.py` → `local_settings.py`
-2. Copy heat-dashboard `enabled/` files into `openstack_dashboard/local/enabled/`
-3. `python manage.py migrate --noinput` — apply DB migrations (SQLite, sessions only)
-4. `python manage.py collectstatic --noinput --clear` — compile SCSS, collect static assets
-5. Start Django development server on `0.0.0.0:8000`
-
-### Volumes
-
-| Volume | Mount | Purpose |
-|---|---|---|
-| `horizon-data` | `/app/data` | SQLite DB (`horizon.db`) + auto-generated secret key |
-| `.` (source) | `/app` | Source tree mounted for live reload in dev |
-
-### Network
-
-`network_mode: host` is required so the container can reach the OpenStack internal endpoints (`internalURL`) directly through the host's routing table without extra network configuration.
+**Key point:** Kolla (image builder) and Kolla-Ansible (deployer) are separate projects. This repo has no Docker support — all containerization goes through Kolla's `Dockerfile.j2` + `kolla-build`. Kolla-Ansible is only told which registry/tag to pull from.
 
 ---
 
-## Customizations
+## References
 
-### CAT Industrial Dark Theme
+- [Kolla image building docs](https://docs.openstack.org/kolla/2025.1/admin/image-building.html)
+- [Kolla-Ansible advanced configuration](https://docs.openstack.org/kolla-ansible/2025.2/admin/advanced-configuration.html)
+- [Kolla-Ansible Horizon guide](https://docs.openstack.org/kolla-ansible/latest/reference/shared-services/horizon-guide.html)
+- [Kolla Horizon Dockerfile.j2](https://github.com/openstack/kolla/blob/master/docker/horizon/Dockerfile.j2)
 
-Located at `openstack_dashboard/themes/cat-dark/`.  
-Activated via `HORIZON_DEFAULT_THEME=cat-dark` in `.env`.
+---
 
-Files:
-- `_variables.scss` — Bootstrap + Horizon variable overrides (colors, table backgrounds)
-- `_styles.scss` — Component-level overrides (navbar, tables, forms, modals, Angular Material)
+## Contributors
 
-### Orchestration Panel (Heat)
+Special thanks to the people who built and maintain this customized Horizon:
 
-`heat-dashboard==15.0.0` is installed via `requirements.txt`.  
-The enabled files are copied into `openstack_dashboard/local/enabled/` on container startup.
-
-The Template Generator uses custom "LD" category labels defined in  
-`openstack_dashboard/static/dashboard/project/ld_customizations/ld-labels.js`,  
-registered via `openstack_dashboard/enabled/_1651_heat_ld_labels.py`.
-
-**Nav category mapping:**
-
-| Original | Display |
+| Contributor | Role |
 |---|---|
-| OS::Nova (Server) | LD Instances |
-| OS::Nova (Keypair) | LD Keys |
-| OS::Cinder | LD Storage |
-| OS::Neutron (net/subnet/router/etc.) | LD Network |
-| OS::Neutron (port/routerinterface) | LD interface |
-| OS::Heat (AutoScalingGroup) | LD Heat |
-| OS::Heat (ResourceGroup) | LD Placement Groups |
-| OS::Heat (ScalingPolicy) | LD Sizes |
-
----
-
-## Troubleshooting
-
-**Page not found on `/project/orchestration/`**  
-The heat-dashboard enabled files were not copied. Restart the container:
-```bash
-docker compose restart
-```
-
-**White table rows / theme not applying**  
-Static files need recompilation. Restart triggers `collectstatic --clear`:
-```bash
-docker compose restart
-```
-
-**`SECRET_KEY` changed / sessions invalidated after rebuild**  
-Set `DJANGO_SECRET_KEY` to a fixed value in `.env` — see [Production](#production).
-
-**Container can't reach OpenStack APIs**  
-Verify the host has a route to `$OPENSTACK_HOST`:
-```bash
-curl http://$OPENSTACK_HOST:5000/v3
-```
-If unreachable, check host routing or DNS.
+| [@cloudinativesw](https://github.com/cloudinativesw) | Core developer — dark theme, label management, Heat fixes |
+| [@AliHub-Solution](https://github.com/AliHub-Solution) | Collaborator |
+| [@ars1364](https://github.com/ars1364) | Maintainer |
