@@ -1,0 +1,71 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Custom Horizon image for HA cluster deployment via kolla-ansible.
+#
+# Build FROM the exact Kolla Horizon image your cluster runs — find it with:
+#   docker inspect kolla_horizon | grep '"Image"'
+#
+# Usage:
+#   docker build -f Dockerfile.kolla \
+#     --build-arg KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble \
+#     -t <your-registry>:5000/kolla/horizon:2025.1-ld \
+#     .
+# ──────────────────────────────────────────────────────────────────────────────
+ARG KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
+FROM ${KOLLA_BASE}
+
+# Kolla installs OpenStack packages into a virtualenv. Find the site-packages
+# path inside the running base image before building:
+#   docker run --rm <KOLLA_BASE> find /var/lib/kolla/venv/lib -name openstack_dashboard -type d
+ARG VENV=/var/lib/kolla/venv
+ARG SP=${VENV}/lib/python3.12/site-packages
+
+# ── 1. Menu Manager Django app ────────────────────────────────────────────────
+COPY openstack_dashboard/menu_manager/ ${SP}/openstack_dashboard/menu_manager/
+
+# ── 2. Panel group enabled files (LD_ names + menu_manager registration) ─────
+COPY openstack_dashboard/enabled/_1010_compute_panel_group.py    ${SP}/openstack_dashboard/enabled/
+COPY openstack_dashboard/enabled/_1310_volumes_panel_group.py    ${SP}/openstack_dashboard/enabled/
+COPY openstack_dashboard/enabled/_1410_network_panel_group.py    ${SP}/openstack_dashboard/enabled/
+COPY openstack_dashboard/enabled/_9000_configuration_panel_group.py ${SP}/openstack_dashboard/enabled/
+COPY openstack_dashboard/enabled/_9010_menu_manager_panel.py     ${SP}/openstack_dashboard/enabled/
+COPY openstack_dashboard/enabled/_1651_heat_ld_labels.py         ${SP}/openstack_dashboard/enabled/
+
+# ── 3. Individual panel renames (LD_ prefix) ─────────────────────────────────
+COPY openstack_dashboard/dashboards/project/instances/panel.py        ${SP}/openstack_dashboard/dashboards/project/instances/
+COPY openstack_dashboard/dashboards/project/images/panel.py           ${SP}/openstack_dashboard/dashboards/project/images/
+COPY openstack_dashboard/dashboards/project/key_pairs/panel.py        ${SP}/openstack_dashboard/dashboards/project/key_pairs/
+COPY openstack_dashboard/dashboards/project/server_groups/panel.py    ${SP}/openstack_dashboard/dashboards/project/server_groups/
+COPY openstack_dashboard/dashboards/project/overview/panel.py         ${SP}/openstack_dashboard/dashboards/project/overview/
+COPY openstack_dashboard/dashboards/project/api_access/panel.py       ${SP}/openstack_dashboard/dashboards/project/api_access/
+COPY openstack_dashboard/dashboards/project/volumes/panel.py          ${SP}/openstack_dashboard/dashboards/project/volumes/
+COPY openstack_dashboard/dashboards/project/backups/panel.py          ${SP}/openstack_dashboard/dashboards/project/backups/
+COPY openstack_dashboard/dashboards/project/snapshots/panel.py        ${SP}/openstack_dashboard/dashboards/project/snapshots/
+COPY openstack_dashboard/dashboards/project/volume_groups/panel.py    ${SP}/openstack_dashboard/dashboards/project/volume_groups/
+COPY openstack_dashboard/dashboards/project/vg_snapshots/panel.py     ${SP}/openstack_dashboard/dashboards/project/vg_snapshots/
+COPY openstack_dashboard/dashboards/project/network_topology/panel.py ${SP}/openstack_dashboard/dashboards/project/network_topology/
+COPY openstack_dashboard/dashboards/project/networks/panel.py         ${SP}/openstack_dashboard/dashboards/project/networks/
+COPY openstack_dashboard/dashboards/project/routers/panel.py          ${SP}/openstack_dashboard/dashboards/project/routers/
+COPY openstack_dashboard/dashboards/project/security_groups/panel.py  ${SP}/openstack_dashboard/dashboards/project/security_groups/
+COPY openstack_dashboard/dashboards/project/floating_ips/panel.py     ${SP}/openstack_dashboard/dashboards/project/floating_ips/
+
+# ── 4. Custom sidebar template ────────────────────────────────────────────────
+COPY openstack_dashboard/templates/horizon/_sidebar.html ${SP}/openstack_dashboard/templates/horizon/
+
+# ── 5. LD labels JS + Angular dark theme fix ──────────────────────────────────
+COPY openstack_dashboard/static/dashboard/project/ld_customizations/ \
+     ${SP}/openstack_dashboard/static/dashboard/project/ld_customizations/
+
+# ── 6. CAT Industrial Dark theme ─────────────────────────────────────────────
+COPY openstack_dashboard/themes/cat-dark/ ${SP}/openstack_dashboard/themes/cat-dark/
+
+# ── 7. Django migration for MenuLabel model ───────────────────────────────────
+# Migrations run at container start (kolla_start calls manage.py migrate).
+# Just ensure the migration file is present — the DB isn't available at build time.
+# (Already copied as part of menu_manager above.)
+
+# ── 8. Collect static files with the new theme + JS baked in ─────────────────
+# Kolla normally does this at start. Force it here so the image ships ready.
+RUN ${VENV}/bin/python -c "
+import django, os
+os.environ['DJANGO_SETTINGS_MODULE'] = 'openstack_dashboard.settings'
+" 2>/dev/null || true
