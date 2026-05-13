@@ -138,4 +138,4 @@ kolla-ansible deploy -t horizon
 
 ## Maintainer
 
-[@ars1364](https://github.com/ars1364) · [@AliHub-Solution](https://github.com/AliHub-Solution)
+[@ars1364](https://github.com/ars1364)

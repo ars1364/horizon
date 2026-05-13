@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 from django.contrib import messages
 from django.core.cache import cache
 from django.shortcuts import redirect, render
@@ -18,22 +16,31 @@ def _require_admin(request):
 
 
 def _collect_items():
-    """Walk Horizon's registry and return all groups + panels as a flat list."""
+    """Walk Horizon's registry and return all groups + panels as a flat list.
+
+    Slugs are deduplicated — the same slug (e.g. 'compute') can exist in both
+    the project and admin dashboards; we only need one entry per slug since
+    the DB and sidebar both key on slug alone.
+    """
     items = []
+    seen = set()
     for dashboard in Horizon.get_dashboards():
         for group in dashboard.get_panel_groups().values():
-            if str(group.name):
+            if str(group.name) and group.slug not in seen:
+                seen.add(group.slug)
                 items.append({
                     'type': 'group',
                     'slug': group.slug,
                     'current_name': str(group.name),
                 })
             for panel in group:
-                items.append({
-                    'type': 'panel',
-                    'slug': panel.slug,
-                    'current_name': str(panel.name),
-                })
+                if panel.slug not in seen:
+                    seen.add(panel.slug)
+                    items.append({
+                        'type': 'panel',
+                        'slug': panel.slug,
+                        'current_name': str(panel.name),
+                    })
     return items
 
 
@@ -56,7 +63,7 @@ def update(request):
         return redirect('horizon:user_home')
 
     if request.method != 'POST':
-        return redirect('menu_manager:index')
+        return redirect('horizon:project:menu_manager:index')
 
     slugs = request.POST.getlist('slug')
     labels = request.POST.getlist('label')
@@ -82,4 +89,4 @@ def update(request):
         _(f"Saved {saved} label(s). Cleared {cleared} override(s). "
           "Changes visible within 30 seconds on all pages.")
     )
-    return redirect('menu_manager:index')
+    return redirect('horizon:project:menu_manager:index')
