@@ -1,89 +1,65 @@
 # Horizon — Customized OpenStack Dashboard
 
-> Forked from [openstack/horizon](https://opendev.org/openstack/horizon) · Kolla-Ansible ready  
-> Includes **CAT Industrial Dark theme**, **Menu Label Management**, and **Heat label fixes**
+Customized OpenStack Horizon 2025.1 image for Kolla-Ansible deployments.  
+Built as a thin layer on top of the official Kolla image — no kolla-build pipeline required.
+
+**Included customizations:**
+
+- **CAT Industrial Dark theme** — dark UI with CAT Yellow (`#FFC300`) branding
+- **LD_ panel renames** — all project panels renamed with `LD_` prefix
+- **Menu Label Manager** — superusers can rename sidebar items at runtime from the dashboard
+- **Heat label fixes** — Template Generator resource categories remapped to LD_ group names
+- **Heat pre-enabled** — Orchestration panels baked in at image build time
 
 ---
 
-## What's Different
+## 1. Build the image
 
-| Feature | Status |
-|---|---|
-| CAT Industrial Dark theme | ✅ Included |
-| Menu / label management panel | ✅ Included |
-| Heat orchestration label fixes | ✅ Fixed |
-| LD_ panel renames | ✅ Included |
-
----
-
-## How It Works
-
-This repo builds a custom Horizon Docker image **on top of the official Kolla image** using a simple `FROM` layer — no kolla-build pipeline required.
-
-```
-quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
-  └─ COPY custom theme, panels, sidebar, heat pre-enable
-     └─ ghcr.io/ars1364/horizon:2025.1
-        └─ globals.yml → horizon_image_full
-           └─ kolla-ansible deploy / reconfigure -t horizon
-```
-
----
-
-## Building the Image
-
-### Automatic (GitHub Actions)
-
-Every push to `master` triggers `.github/workflows/build-horizon.yml`, which builds `Dockerfile.kolla` and pushes to:
-
-```
-ghcr.io/ars1364/horizon:2025.1
-ghcr.io/ars1364/horizon:latest
-```
-
-To trigger a manual build with a custom base image, use **Actions → Build & Push Horizon Image → Run workflow**.
-
-### Manual local build
+On any machine with Docker and access to `quay.io`:
 
 ```bash
-docker build -f Dockerfile.kolla \
-  -t ghcr.io/ars1364/horizon:2025.1 \
-  .
-docker push ghcr.io/ars1364/horizon:2025.1
-```
+git clone https://github.com/ars1364/horizon.git
+cd horizon
 
-To use a different Kolla base (e.g. a pinned or locally-built image):
-
-```bash
 docker build -f Dockerfile.kolla \
-  --build-arg KOLLA_BASE=<your-registry>/horizon:2025.1 \
-  -t <your-registry>/horizon:2025.1-custom \
+  -t <registry>:4000/ars1364/horizon:2025.1 \
   .
 ```
 
+Replace `<registry>` with your local registry IP (the controller node running the Docker registry).
+
+The build pulls `quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble` as the base and layers all customizations on top. Build time is 2–5 minutes depending on network speed to quay.io.
+
+> **Tip — build from a specific Kolla base:**  
+> If you want to pin to the exact image your cluster is currently running, pass it explicitly:
+> ```bash
+> docker build -f Dockerfile.kolla \
+>   --build-arg KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble \
+>   -t <registry>:4000/ars1364/horizon:2025.1 \
+>   .
+> ```
+
 ---
 
-## Deploying with Kolla-Ansible
-
-### Step 1 — Tag and push to your local registry
-
-After the GitHub Actions build completes (or after a manual build), pull and push to your cluster registry:
+## 2. Push to your registry
 
 ```bash
-docker pull ghcr.io/ars1364/horizon:2025.1
-docker tag  ghcr.io/ars1364/horizon:2025.1 <registry-ip>:4000/ars1364/horizon:2025.1
-docker push <registry-ip>:4000/ars1364/horizon:2025.1
+docker push <registry>:4000/ars1364/horizon:2025.1
 ```
 
-### Step 2 — Apply globals.yml overrides
+---
 
-Add or update these entries in `/etc/kolla/globals.yml` on the deploy host:
+## 3. Configure kolla-ansible (deploy host)
+
+### 3a. globals.yml
+
+Add or update these entries in `/etc/kolla/globals.yml`:
 
 ```yaml
-# Point kolla-ansible at the custom image
-horizon_image_full: "<registry-ip>:4000/ars1364/horizon:2025.1"
+# Use the custom image
+horizon_image_full: "<registry>:4000/ars1364/horizon:2025.1"
 
-# Enable Heat dashboard UI (does NOT require Heat to be deployed)
+# Enable Heat dashboard UI (does NOT require Heat service to be deployed)
 enable_horizon_heat: "yes"
 
 # CAT Industrial Dark theme
@@ -94,28 +70,35 @@ horizon_custom_themes:
 horizon_default_theme: "cat-dark"
 ```
 
-### Step 3 — Install the local_settings override
+### 3b. local_settings override
 
-Copy the deploy-host settings file so kolla-ansible appends it to the generated `local_settings.py`:
+This file adds `menu_manager` to `INSTALLED_APPS` and sets the default theme.  
+kolla-ansible appends it to the generated `local_settings.py` on every deploy/reconfigure.
 
 ```bash
 mkdir -p /etc/kolla/config/horizon
 cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings
 ```
 
-This file adds:
-- `openstack_dashboard.menu_manager` to `INSTALLED_APPS`
-- `cat-dark` theme to `AVAILABLE_THEMES`
+---
 
-### Step 4 — Deploy
+## 4. Deploy
 
 ```bash
 kolla-ansible reconfigure -t horizon
 ```
 
-### Step 5 — Run Menu Manager migrations (first deploy only)
+Or for a fresh install:
 
-The `menu_manager` panel uses a small DB table for label overrides. Run migrations once after the first deploy:
+```bash
+kolla-ansible deploy -t horizon
+```
+
+---
+
+## 5. First-deploy only — run database migrations
+
+The Menu Label Manager needs a small DB table. Run this once after the first deploy:
 
 ```bash
 docker exec horizon bash -c \
@@ -123,49 +106,82 @@ docker exec horizon bash -c \
    python /var/lib/kolla/venv/bin/manage.py migrate --noinput"
 ```
 
+This is idempotent — safe to run again if you're unsure.
+
 ---
 
-## Customizations Reference
+## Updating the image
 
-### CAT Industrial Dark Theme
+After any change to this repo:
 
-`openstack_dashboard/themes/cat-dark/`
+```bash
+# Rebuild
+docker build -f Dockerfile.kolla -t <registry>:4000/ars1364/horizon:2025.1 .
 
-- `_variables.scss` — Bootstrap + Horizon variable overrides
-- `_styles.scss` — Component overrides (navbar, tables, modals, Angular Material for Heat)
+# Push
+docker push <registry>:4000/ars1364/horizon:2025.1
 
-### Menu Label Management
+# Redeploy
+kolla-ansible reconfigure -t horizon
+```
 
-`openstack_dashboard/menu_manager/`
+---
 
-Superusers can rename any sidebar group or panel label at runtime via **Project → Configuration → Menu Labels**. Labels are stored in the Horizon database and cached for 30 seconds.
+## Customizations reference
 
-### LD_ Panel Renames
+### CAT Industrial Dark theme
 
-17 `panel.py` files and 4 `_*_panel_group.py` enabled files replace stock category/panel names with `LD_`-prefixed equivalents (LD_Instances, LD_Storage, LD_Network, etc.).
+Files: `openstack_dashboard/themes/cat-dark/_variables.scss`, `_styles.scss`
 
-### Heat Label Fixes
+Bootstrap + Horizon variable overrides and component-level dark styles. Includes Angular Material overrides for the Heat Template Generator.
 
-`openstack_dashboard/enabled/_1651_heat_ld_labels.py` +  
-`openstack_dashboard/static/dashboard/project/ld_customizations/ld-labels.js`
+Activated via `horizon_default_theme: cat-dark` in `globals.yml`.
 
-Angular decorator that remaps Heat Template Generator resource categories to custom LD group names.
+### Menu Label Manager
+
+Directory: `openstack_dashboard/menu_manager/`
+
+Superusers can rename any sidebar group or panel label at runtime via **Project → Configuration → Menu Labels**. Labels are stored in the Horizon database and applied via a template tag in the sidebar. Changes are cached for 30 seconds.
+
+Requires `manage.py migrate` (see Step 5) and the `local_settings` override (see Step 3b).
+
+### LD_ panel renames
+
+17 `panel.py` files and 4 `_*_panel_group.py` enabled files replace all stock project-dashboard names:
+
+| Stock name | Custom name |
+|---|---|
+| Compute | LD_Compute |
+| Instances | LD_Instances |
+| Images | LD_Image |
+| Key Pairs | LD_Keys |
+| Server Groups | LD_Placement Group |
+| Volumes | LD_Storage |
+| Network | LD_Network |
+| … | … |
+
+### Heat label fixes
+
+`openstack_dashboard/enabled/_1651_heat_ld_labels.py` registers an Angular decorator (`ld-labels.js`) that remaps Heat Template Generator resource categories from OpenStack namespace strings (e.g. `OS__Nova__Server`) to human-friendly LD group names.
 
 ---
 
 ## Troubleshooting
 
 **Heat panels not showing after reconfigure**  
-Ensure `enable_horizon_heat: "yes"` is in `globals.yml`, then rerun `kolla-ansible reconfigure -t horizon`. The `extend_start.sh` inside the container activates the heat panels on startup only when this variable is set.
+Check that `enable_horizon_heat: "yes"` is in `globals.yml`. Run `kolla-ansible reconfigure -t horizon`. The container's startup script (`extend_start.sh`) activates heat panels only when this env var is passed.
 
-**Cat-dark theme not applying**  
-Confirm `/etc/kolla/config/horizon/local_settings` is in place and contains the `AVAILABLE_THEMES` / `DEFAULT_THEME` entries. Rerun reconfigure.
+**Theme not applying / still shows default**  
+Confirm `/etc/kolla/config/horizon/local_settings` exists on the deploy host and contains the `AVAILABLE_THEMES` / `DEFAULT_THEME` lines. Rerun reconfigure.
 
-**Menu Labels panel shows 404 / DB error**  
-Run the migration step above (Step 5). The `menu_label` table does not exist until `manage.py migrate` runs.
+**Menu Labels panel shows "table not found" error**  
+Run the migration command in Step 5.
 
-**Build fails on quay.io image pull**  
-The quay.io images are public but rate-limited. Add `--build-arg KOLLA_BASE=<local-mirror>` or authenticate: `docker login quay.io`.
+**Build fails — cannot pull quay.io base image**  
+The quay.io images are public but may be rate-limited. Authenticate with `docker login quay.io` or mirror the base image to your local registry first.
+
+**collectstatic errors in container logs on first start**  
+This is normal on the very first start after a new image — kolla's startup script detects changed settings and reruns `collectstatic`. It should complete within 60–90 seconds. If it loops or fails repeatedly, check disk space on the controller.
 
 ---
 
