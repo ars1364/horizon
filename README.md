@@ -12,127 +12,160 @@
 | CAT Industrial Dark theme | ✅ Included |
 | Menu / label management panel | ✅ Included |
 | Heat orchestration label fixes | ✅ Fixed |
-
----
-
-## Deploying with Kolla-Ansible
-
-This repo does **not** ship a Dockerfile — containerization is handled by the separate [Kolla](https://opendev.org/openstack/kolla) project via `Dockerfile.j2`. The workflow below builds a custom Horizon image from this fork and points Kolla-Ansible at it.
-
-### Step 1 — Install Kolla (image builder)
-
-```bash
-pip install kolla
-# pin to your OpenStack release:
-pip install 'kolla==2025.1'
-```
-
-### Step 2 — Configure kolla-build to use this fork
-
-Create `/etc/kolla/kolla-build.conf`:
-
-```ini
-[DEFAULT]
-base = ubuntu
-install_type = source
-namespace = mycompany
-tag = 2025.1-custom
-
-[horizon]
-type = git
-location = https://github.com/ars1364/horizon
-reference = master
-```
-
-If you need token auth (private fork):
-
-```ini
-[horizon]
-type = git
-location = https://<your-token>@github.com/ars1364/horizon
-reference = master
-```
-
-### Step 3 — Run a local Docker registry
-
-```bash
-docker run -d -p 4000:5000 --restart=always --name registry \
-  -v /data/registry:/var/lib/registry registry:2
-```
-
-### Step 4 — Build and push the Horizon image only
-
-```bash
-kolla-build \
-  --config-file /etc/kolla/kolla-build.conf \
-  --registry <control-node-ip>:4000 \
-  --namespace mycompany \
-  --tag 2025.1-custom \
-  --push \
-  ^horizon$
-```
-
-This produces: `<control-node-ip>:4000/mycompany/horizon:2025.1-custom`
-
-### Step 5 — Tell Kolla-Ansible to use your custom image
-
-In `/etc/kolla/globals.yml`, override **only** Horizon (leaves all other services untouched):
-
-```yaml
-horizon_image_full: "<control-node-ip>:4000/mycompany/horizon:2025.1-custom"
-docker_registry_insecure: true
-```
-
-On **all nodes**, trust the insecure registry in `/etc/docker/daemon.json`:
-
-```json
-{
-  "insecure-registries": ["<control-node-ip>:4000"]
-}
-```
-
-Then restart Docker on all nodes:
-
-```bash
-systemctl restart docker
-```
-
-### Step 6 — Deploy / reconfigure
-
-**Existing cluster (Horizon already deployed):**
-
-```bash
-kolla-ansible reconfigure -t horizon
-```
-
-**Fresh deploy:**
-
-```bash
-kolla-ansible deploy -t horizon
-```
+| LD_ panel renames | ✅ Included |
 
 ---
 
 ## How It Works
 
-```
-1. Fork openstack/horizon → this repo
-2. kolla-build.conf → [horizon] type=git, location=this repo
-3. kolla-build --registry <local-reg> --push ^horizon$
-4. globals.yml → horizon_image_full: "<registry>/horizon:<tag>"
-5. kolla-ansible deploy / reconfigure -t horizon
-```
+This repo builds a custom Horizon Docker image **on top of the official Kolla image** using a simple `FROM` layer — no kolla-build pipeline required.
 
-**Key point:** Kolla (image builder) and Kolla-Ansible (deployer) are separate projects. This repo has no Docker support — all containerization goes through Kolla's `Dockerfile.j2` + `kolla-build`. Kolla-Ansible is only told which registry/tag to pull from.
+```
+quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
+  └─ COPY custom theme, panels, sidebar, heat pre-enable
+     └─ ghcr.io/ars1364/horizon:2025.1
+        └─ globals.yml → horizon_image_full
+           └─ kolla-ansible deploy / reconfigure -t horizon
+```
 
 ---
 
-## References
+## Building the Image
 
-- [Kolla image building docs](https://docs.openstack.org/kolla/2025.1/admin/image-building.html)
-- [Kolla-Ansible advanced configuration](https://docs.openstack.org/kolla-ansible/2025.2/admin/advanced-configuration.html)
-- [Kolla-Ansible Horizon guide](https://docs.openstack.org/kolla-ansible/latest/reference/shared-services/horizon-guide.html)
-- [Kolla Horizon Dockerfile.j2](https://github.com/openstack/kolla/blob/master/docker/horizon/Dockerfile.j2)
+### Automatic (GitHub Actions)
+
+Every push to `master` triggers `.github/workflows/build-horizon.yml`, which builds `Dockerfile.kolla` and pushes to:
+
+```
+ghcr.io/ars1364/horizon:2025.1
+ghcr.io/ars1364/horizon:latest
+```
+
+To trigger a manual build with a custom base image, use **Actions → Build & Push Horizon Image → Run workflow**.
+
+### Manual local build
+
+```bash
+docker build -f Dockerfile.kolla \
+  -t ghcr.io/ars1364/horizon:2025.1 \
+  .
+docker push ghcr.io/ars1364/horizon:2025.1
+```
+
+To use a different Kolla base (e.g. a pinned or locally-built image):
+
+```bash
+docker build -f Dockerfile.kolla \
+  --build-arg KOLLA_BASE=<your-registry>/horizon:2025.1 \
+  -t <your-registry>/horizon:2025.1-custom \
+  .
+```
+
+---
+
+## Deploying with Kolla-Ansible
+
+### Step 1 — Tag and push to your local registry
+
+After the GitHub Actions build completes (or after a manual build), pull and push to your cluster registry:
+
+```bash
+docker pull ghcr.io/ars1364/horizon:2025.1
+docker tag  ghcr.io/ars1364/horizon:2025.1 <registry-ip>:4000/ars1364/horizon:2025.1
+docker push <registry-ip>:4000/ars1364/horizon:2025.1
+```
+
+### Step 2 — Apply globals.yml overrides
+
+Add or update these entries in `/etc/kolla/globals.yml` on the deploy host:
+
+```yaml
+# Point kolla-ansible at the custom image
+horizon_image_full: "<registry-ip>:4000/ars1364/horizon:2025.1"
+
+# Enable Heat dashboard UI (does NOT require Heat to be deployed)
+enable_horizon_heat: "yes"
+
+# CAT Industrial Dark theme
+horizon_custom_themes:
+  - name: "cat-dark"
+    label: "CAT Industrial Dark"
+    path: "themes/cat-dark"
+horizon_default_theme: "cat-dark"
+```
+
+### Step 3 — Install the local_settings override
+
+Copy the deploy-host settings file so kolla-ansible appends it to the generated `local_settings.py`:
+
+```bash
+mkdir -p /etc/kolla/config/horizon
+cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings
+```
+
+This file adds:
+- `openstack_dashboard.menu_manager` to `INSTALLED_APPS`
+- `cat-dark` theme to `AVAILABLE_THEMES`
+
+### Step 4 — Deploy
+
+```bash
+kolla-ansible reconfigure -t horizon
+```
+
+### Step 5 — Run Menu Manager migrations (first deploy only)
+
+The `menu_manager` panel uses a small DB table for label overrides. Run migrations once after the first deploy:
+
+```bash
+docker exec horizon bash -c \
+  "source /var/lib/kolla/venv/bin/activate && \
+   python /var/lib/kolla/venv/bin/manage.py migrate --noinput"
+```
+
+---
+
+## Customizations Reference
+
+### CAT Industrial Dark Theme
+
+`openstack_dashboard/themes/cat-dark/`
+
+- `_variables.scss` — Bootstrap + Horizon variable overrides
+- `_styles.scss` — Component overrides (navbar, tables, modals, Angular Material for Heat)
+
+### Menu Label Management
+
+`openstack_dashboard/menu_manager/`
+
+Superusers can rename any sidebar group or panel label at runtime via **Project → Configuration → Menu Labels**. Labels are stored in the Horizon database and cached for 30 seconds.
+
+### LD_ Panel Renames
+
+17 `panel.py` files and 4 `_*_panel_group.py` enabled files replace stock category/panel names with `LD_`-prefixed equivalents (LD_Instances, LD_Storage, LD_Network, etc.).
+
+### Heat Label Fixes
+
+`openstack_dashboard/enabled/_1651_heat_ld_labels.py` +  
+`openstack_dashboard/static/dashboard/project/ld_customizations/ld-labels.js`
+
+Angular decorator that remaps Heat Template Generator resource categories to custom LD group names.
+
+---
+
+## Troubleshooting
+
+**Heat panels not showing after reconfigure**  
+Ensure `enable_horizon_heat: "yes"` is in `globals.yml`, then rerun `kolla-ansible reconfigure -t horizon`. The `extend_start.sh` inside the container activates the heat panels on startup only when this variable is set.
+
+**Cat-dark theme not applying**  
+Confirm `/etc/kolla/config/horizon/local_settings` is in place and contains the `AVAILABLE_THEMES` / `DEFAULT_THEME` entries. Rerun reconfigure.
+
+**Menu Labels panel shows 404 / DB error**  
+Run the migration step above (Step 5). The `menu_label` table does not exist until `manage.py migrate` runs.
+
+**Build fails on quay.io image pull**  
+The quay.io images are public but rate-limited. Add `--build-arg KOLLA_BASE=<local-mirror>` or authenticate: `docker login quay.io`.
 
 ---
 

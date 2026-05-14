@@ -7,14 +7,13 @@ on:
   workflow_dispatch:
     inputs:
       kolla_base:
-        description: "Kolla base image (e.g. local-registry:5000/kolla/horizon:2025.1)"
+        description: "Override Kolla base image (leave blank for default quay.io image)"
         required: false
         default: ""
 
 env:
-  IMAGE: ghcr.io/chjkh8113/horizon
-  # Default base — override via workflow_dispatch input or update after pushing base to ghcr.io
-  DEFAULT_BASE: ghcr.io/chjkh8113/kolla-horizon-base:2025.1
+  IMAGE: ghcr.io/ars1364/horizon
+  DEFAULT_BASE: quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
 
 jobs:
   build-push:

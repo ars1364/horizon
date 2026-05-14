@@ -63,6 +63,12 @@ COPY openstack_dashboard/themes/cat-dark/ ${SP}/openstack_dashboard/themes/cat-d
 # Just ensure the migration file is present — the DB isn't available at build time.
 # (Already copied as part of menu_manager above.)
 
-# ── 8. Collect static files with the new theme + JS baked in ─────────────────
-# Kolla normally does this at start. Force it here so the image ships ready.
-RUN ${VENV}/bin/python -c "import django, os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','openstack_dashboard.settings')" 2>/dev/null || true
+# ── 8. Pre-enable heat-dashboard ─────────────────────────────────────────────
+# Copy heat_dashboard's enabled panel files into local/enabled/ so the
+# Orchestration panels are present in the image regardless of ENABLE_HEAT.
+# kolla's extend_start.sh will re-copy them (idempotent) when enable_horizon_heat
+# is yes in globals.yml, which is the required companion setting.
+RUN mkdir -p ${SP}/openstack_dashboard/local/enabled && \
+    for f in ${SP}/heat_dashboard/enabled/_*[^_].py; do \
+        [ -f "$f" ] && cp -f "$f" ${SP}/openstack_dashboard/local/enabled/; \
+    done

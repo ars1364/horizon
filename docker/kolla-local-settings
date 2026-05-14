@@ -1,0 +1,19 @@
+# Deploy-host Horizon settings override for kolla-ansible.
+#
+# Copy this file to /etc/kolla/config/horizon/local_settings on the deploy host.
+# kolla-ansible appends it to the generated local_settings.py on every deploy/reconfigure.
+#
+# Apply with:
+#   kolla-ansible reconfigure -t horizon
+
+# ── Menu Manager app ──────────────────────────────────────────────────────────
+# Required for the dynamic label admin panel and the sidebar template tag.
+INSTALLED_APPS = list(INSTALLED_APPS) + ['openstack_dashboard.menu_manager']
+
+# ── CAT Industrial Dark theme ─────────────────────────────────────────────────
+AVAILABLE_THEMES = [
+    ('default',  'Default',              'themes/default'),
+    ('material', 'Material',             'themes/material'),
+    ('cat-dark', 'CAT Industrial Dark',  'themes/cat-dark'),
+]
+DEFAULT_THEME = 'cat-dark'
