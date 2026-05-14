@@ -6,11 +6,11 @@
 #
 # Usage:
 #   docker build -f Dockerfile.kolla \
-#     --build-arg KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble \
+#     --build-arg KOLLA_BASE=quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble \
 #     -t <your-registry>:5000/kolla/horizon:2025.1-ld \
 #     .
 # ──────────────────────────────────────────────────────────────────────────────
-ARG KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble
+ARG KOLLA_BASE=quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble
 FROM ${KOLLA_BASE}
 
 # Kolla installs OpenStack packages into a virtualenv. Find the site-packages
@@ -18,6 +18,7 @@ FROM ${KOLLA_BASE}
 #   docker run --rm <KOLLA_BASE> find /var/lib/kolla/venv/lib -name openstack_dashboard -type d
 ARG VENV=/var/lib/kolla/venv
 ARG SP=${VENV}/lib/python3.12/site-packages
+ENV SP=/var/lib/kolla/venv/lib/python3.12/site-packages
 
 # ── 1. Menu Manager Django app ────────────────────────────────────────────────
 COPY openstack_dashboard/menu_manager/ ${SP}/openstack_dashboard/menu_manager/
@@ -68,7 +69,9 @@ COPY openstack_dashboard/themes/cat-dark/ ${SP}/openstack_dashboard/themes/cat-d
 # Orchestration panels are present in the image regardless of ENABLE_HEAT.
 # kolla's extend_start.sh will re-copy them (idempotent) when enable_horizon_heat
 # is yes in globals.yml, which is the required companion setting.
-RUN mkdir -p ${SP}/openstack_dashboard/local/enabled && \
-    for f in ${SP}/heat_dashboard/enabled/_*[^_].py; do \
-        [ -f "$f" ] && cp -f "$f" ${SP}/openstack_dashboard/local/enabled/; \
-    done
+RUN mkdir -p $SP/openstack_dashboard/local/enabled \
+ && cp $SP/heat_dashboard/enabled/_1610_project_orchestration_panel.py  $SP/openstack_dashboard/local/enabled/ \
+ && cp $SP/heat_dashboard/enabled/_1620_project_stacks_panel.py          $SP/openstack_dashboard/local/enabled/ \
+ && cp $SP/heat_dashboard/enabled/_1630_project_resource_types_panel.py  $SP/openstack_dashboard/local/enabled/ \
+ && cp $SP/heat_dashboard/enabled/_1640_project_template_versions_panel.py $SP/openstack_dashboard/local/enabled/ \
+ && cp $SP/heat_dashboard/enabled/_1650_project_template_generator_panel.py $SP/openstack_dashboard/local/enabled/

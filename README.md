@@ -28,13 +28,13 @@ docker build -f Dockerfile.kolla \
 
 Replace `<registry>` with your local registry IP (the controller node running the Docker registry).
 
-The build pulls `quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble` as the base and layers all customizations on top. Build time is 2–5 minutes depending on network speed to quay.io.
+The build pulls `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` as the base and layers all customizations on top. Build time is 2–5 minutes depending on network speed to quay.io.
 
 > **Tip — build from a specific Kolla base:**  
 > If you want to pin to the exact image your cluster is currently running, pass it explicitly:
 > ```bash
 > docker build -f Dockerfile.kolla \
->   --build-arg KOLLA_BASE=quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble \
+>   --build-arg KOLLA_BASE=quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble \
 >   -t <registry>:4000/ars1364/horizon:2025.1 \
 >   .
 > ```
@@ -179,6 +179,16 @@ Run the migration command in Step 5.
 
 **Build fails — cannot pull quay.io base image**  
 The quay.io images are public but may be rate-limited. Authenticate with `docker login quay.io` or mirror the base image to your local registry first.
+
+**"metadata unknown" or manifest error during `docker build`**  
+You are using the wrong base image. There are two Kolla Horizon images on quay.io and they are **not interchangeable**:
+
+| Image | Use? |
+|---|---|
+| `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` | **Correct** — binary/pre-built, same image kolla-ansible deploys |
+| `quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble` | **Wrong** — source-built variant, different internal paths, causes metadata/COPY errors |
+
+Always use `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble`. The `ubuntu-source-horizon` variant has a different filesystem layout; the `COPY` commands in `Dockerfile.kolla` will fail or land in the wrong location.
 
 **collectstatic errors in container logs on first start**  
 This is normal on the very first start after a new image — kolla's startup script detects changed settings and reruns `collectstatic`. It should complete within 60–90 seconds. If it loops or fails repeatedly, check disk space on the controller.
