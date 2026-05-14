@@ -28,16 +28,18 @@ docker build -f Dockerfile.kolla \
 
 Replace `<registry>` with your local registry IP (the controller node running the Docker registry).
 
-The build pulls `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` as the base and layers all customizations on top. Build time is 2–5 minutes depending on network speed to quay.io.
+The build pulls `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` as the base and layers all
+customizations on top. The base image is ~2.8 GB; build time is 2–5 minutes depending on network speed.
 
-> **Tip — build from a specific Kolla base:**  
-> If you want to pin to the exact image your cluster is currently running, pass it explicitly:
-> ```bash
-> docker build -f Dockerfile.kolla \
->   --build-arg KOLLA_BASE=quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble \
->   -t <registry>:4000/ars1364/horizon:2025.1 \
->   .
-> ```
+> **Important — use the correct base image:**  
+> There are two Kolla Horizon images on quay.io — they are **not interchangeable**:
+>
+> | Image | Use? |
+> |---|---|
+> | `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` | **Correct** — binary/pre-built |
+> | `quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble` | **Wrong** — different filesystem layout, causes build errors |
+>
+> Always use `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble`.
 
 ---
 
@@ -72,13 +74,39 @@ horizon_default_theme: "cat-dark"
 
 ### 3b. local_settings override
 
-This file adds `menu_manager` to `INSTALLED_APPS` and sets the default theme.  
+This file activates `menu_manager`, sets the default theme, and (if needed) configures the database.
 kolla-ansible appends it to the generated `local_settings.py` on every deploy/reconfigure.
 
 ```bash
 mkdir -p /etc/kolla/config/horizon
 cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings
 ```
+
+**Database configuration (required for Menu Label Manager):**
+
+kolla 2025.1 Horizon uses memcached sessions and does **not** always configure a SQL `DATABASES`
+backend. `menu_manager` needs one to persist label overrides. Before copying the file, open
+`docker/kolla-local-settings` and fill in the `DATABASES` block:
+
+```python
+# Find these values on the deploy host:
+#   HOST     → kolla_internal_vip_address  in globals.yml
+#   PASSWORD → horizon_database_password   in /etc/kolla/passwords.yml
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'horizon',
+        'USER': 'horizon',
+        'PASSWORD': '<horizon_database_password>',
+        'HOST': '<kolla_internal_vip_address>',
+        'OPTIONS': {'charset': 'utf8'},
+    }
+}
+```
+
+The `kolla-local-settings` file ships with this block commented out. Uncomment it and fill in
+`HOST` and `PASSWORD`, then copy it to `/etc/kolla/config/horizon/local_settings`.
 
 ---
 
@@ -96,17 +124,19 @@ kolla-ansible deploy -t horizon
 
 ---
 
-## 5. First-deploy only — run database migrations
+## 5. First-deploy only — run database migration
 
-The Menu Label Manager needs a small DB table. Run this once after the first deploy:
+The Menu Label Manager needs one DB table. Run this once after the first deploy (idempotent — safe to
+re-run):
 
 ```bash
 docker exec horizon bash -c \
   "source /var/lib/kolla/venv/bin/activate && \
-   python /var/lib/kolla/venv/bin/manage.py migrate --noinput"
+   python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"
 ```
 
-This is idempotent — safe to run again if you're unsure.
+> This requires DATABASES to be configured (Step 3b). If not done first, the migrate command will
+> also fail with an `ImproperlyConfigured` error.
 
 ---
 
@@ -133,7 +163,8 @@ kolla-ansible reconfigure -t horizon
 
 Files: `openstack_dashboard/themes/cat-dark/_variables.scss`, `_styles.scss`
 
-Bootstrap + Horizon variable overrides and component-level dark styles. Includes Angular Material overrides for the Heat Template Generator.
+Bootstrap + Horizon variable overrides and component-level dark styles. Includes Angular Material
+overrides for the Heat Template Generator.
 
 Activated via `horizon_default_theme: cat-dark` in `globals.yml`.
 
@@ -141,9 +172,13 @@ Activated via `horizon_default_theme: cat-dark` in `globals.yml`.
 
 Directory: `openstack_dashboard/menu_manager/`
 
-Superusers can rename any sidebar group or panel label at runtime via **Project → Configuration → Menu Labels**. Labels are stored in the Horizon database and applied via a template tag in the sidebar. Changes are cached for 30 seconds.
+Superusers can rename any sidebar group or panel label at runtime via
+**Project → Configuration → Menu Labels**. Labels are stored in the Horizon database and applied
+via a template tag in the sidebar. Changes are cached for 30 seconds.
 
-Requires `manage.py migrate` (see Step 5) and the `local_settings` override (see Step 3b).
+Requires:
+- `DATABASES` configured in `local_settings` (Step 3b)
+- `manage.py migrate menu_manager` run at least once (Step 5)
 
 ### LD_ panel renames
 
@@ -162,44 +197,45 @@ Requires `manage.py migrate` (see Step 5) and the `local_settings` override (see
 
 ### Heat label fixes
 
-`openstack_dashboard/enabled/_1651_heat_ld_labels.py` registers an Angular decorator (`ld-labels.js`) that remaps Heat Template Generator resource categories from OpenStack namespace strings (e.g. `OS__Nova__Server`) to human-friendly LD group names.
+`openstack_dashboard/enabled/_1651_heat_ld_labels.py` registers an Angular decorator (`ld-labels.js`)
+that remaps Heat Template Generator resource categories from OpenStack namespace strings
+(e.g. `OS__Nova__Server`) to human-friendly LD group names.
 
 ---
 
 ## Troubleshooting
 
 **Heat panels not showing after reconfigure**  
-Check that `enable_horizon_heat: "yes"` is in `globals.yml`. Run `kolla-ansible reconfigure -t horizon`. The container's startup script (`extend_start.sh`) activates heat panels only when this env var is passed.
+Check that `enable_horizon_heat: "yes"` is in `globals.yml`. Run `kolla-ansible reconfigure -t horizon`.
+The container's startup script (`extend_start.sh`) activates heat panels only when this env var is passed.
 
 **Theme not applying / still shows default**  
-Confirm `/etc/kolla/config/horizon/local_settings` exists on the deploy host and contains the `AVAILABLE_THEMES` / `DEFAULT_THEME` lines. Rerun reconfigure.
+Confirm `/etc/kolla/config/horizon/local_settings` exists on the deploy host and contains the
+`AVAILABLE_THEMES` / `DEFAULT_THEME` lines. Rerun reconfigure.
 
-**Menu Labels panel shows 500 / "DATABASES is improperly configured"**  
-kolla 2025.1 Horizon uses memcached sessions and does not configure a SQL `DATABASES` backend by default. `menu_manager` needs one to store label overrides.
+**Menu Labels page shows 500 / "DATABASES is improperly configured"**  
+kolla 2025.1 Horizon does not configure a SQL database backend by default.
 
-1. Open `docker/kolla-local-settings` and uncomment the `DATABASES` block near the top.
-2. Fill in `HOST` (`kolla_internal_vip_address` from `globals.yml`) and `PASSWORD` (`horizon_database_password` from `/etc/kolla/passwords.yml` on the deploy host).
-3. Copy the updated file to `/etc/kolla/config/horizon/local_settings` on the deploy host and run `kolla-ansible reconfigure -t horizon`.
-4. Run the migration once: `docker exec horizon bash -c "source /var/lib/kolla/venv/bin/activate && python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"`
+1. Open `docker/kolla-local-settings`, find the `DATABASES` block, and uncomment it.
+2. Fill in `HOST` (`kolla_internal_vip_address` from `globals.yml`) and `PASSWORD`
+   (`horizon_database_password` from `/etc/kolla/passwords.yml`).
+3. Copy to deploy host: `cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings`
+4. Reconfigure: `kolla-ansible reconfigure -t horizon`
+5. Run migration: `docker exec horizon bash -c "source /var/lib/kolla/venv/bin/activate && python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"`
 
-**Menu Labels panel shows "table not found" error**  
-Run the migration command in Step 5.
+**Menu Labels page shows "table not found"**  
+The migration hasn't been run yet. See Step 5 above.
 
 **Build fails — cannot pull quay.io base image**  
-The quay.io images are public but may be rate-limited. Authenticate with `docker login quay.io` or mirror the base image to your local registry first.
+The quay.io images are public but may be rate-limited. Authenticate with `docker login quay.io` or
+mirror the base image to your local registry first.
 
 **"metadata unknown" or manifest error during `docker build`**  
-You are using the wrong base image. There are two Kolla Horizon images on quay.io and they are **not interchangeable**:
-
-| Image | Use? |
-|---|---|
-| `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble` | **Correct** — binary/pre-built, same image kolla-ansible deploys |
-| `quay.io/openstack.kolla/ubuntu-source-horizon:2025.1-ubuntu-noble` | **Wrong** — source-built variant, different internal paths, causes metadata/COPY errors |
-
-Always use `quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble`. The `ubuntu-source-horizon` variant has a different filesystem layout; the `COPY` commands in `Dockerfile.kolla` will fail or land in the wrong location.
+You are using the wrong base image — see the warning box in Step 1.
 
 **collectstatic errors in container logs on first start**  
-This is normal on the very first start after a new image — kolla's startup script detects changed settings and reruns `collectstatic`. It should complete within 60–90 seconds. If it loops or fails repeatedly, check disk space on the controller.
+Normal on the first start after a new image — kolla's startup script detects changed settings and
+reruns `collectstatic`. Completes within 60–90 seconds. If it loops, check disk space on the controller.
 
 ---
 
