@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.core.cache import cache
+from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render
 from django.utils.translation import gettext_lazy as _
 
@@ -50,7 +51,26 @@ def index(request):
         return redirect('horizon:user_home')
 
     items = _collect_items()
-    overrides = {m.slug: m.custom_label for m in MenuLabel.objects.all()}
+    try:
+        overrides = {m.slug: m.custom_label for m in MenuLabel.objects.all()}
+    except ImproperlyConfigured:
+        messages.error(request, _(
+            "Database not configured. "
+            "Add DATABASES to /etc/kolla/config/horizon/local_settings and run: "
+            "manage.py migrate menu_manager --noinput"
+        ))
+        overrides = {}
+    except Exception as exc:
+        s = str(exc).lower()
+        if 'no such table' in s or "doesn't exist" in s or '1146' in s:
+            messages.error(request, _(
+                "Table missing — run: docker exec horizon bash -c "
+                "'source /var/lib/kolla/venv/bin/activate && "
+                "python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput'"
+            ))
+        else:
+            messages.error(request, _(f"Database error: {exc}"))
+        overrides = {}
     for item in items:
         item['custom'] = overrides.get(item['slug'], '')
 
@@ -70,17 +90,21 @@ def update(request):
 
     saved = 0
     cleared = 0
-    for slug, label in zip(slugs, labels):
-        label = label.strip()
-        if label:
-            MenuLabel.objects.update_or_create(
-                slug=slug,
-                defaults={'custom_label': label},
-            )
-            saved += 1
-        else:
-            deleted, _ = MenuLabel.objects.filter(slug=slug).delete()
-            cleared += deleted
+    try:
+        for slug, label in zip(slugs, labels):
+            label = label.strip()
+            if label:
+                MenuLabel.objects.update_or_create(
+                    slug=slug,
+                    defaults={'custom_label': label},
+                )
+                saved += 1
+            else:
+                deleted, _ = MenuLabel.objects.filter(slug=slug).delete()
+                cleared += deleted
+    except (ImproperlyConfigured, Exception) as exc:
+        messages.error(request, _(f"Could not save labels — database error: {exc}"))
+        return redirect('horizon:project:menu_manager:index')
 
     cache.delete(_CACHE_KEY)
 

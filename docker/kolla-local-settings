@@ -10,6 +10,35 @@
 # Required for the dynamic label admin panel and the sidebar template tag.
 INSTALLED_APPS = list(INSTALLED_APPS) + ['openstack_dashboard.menu_manager']
 
+# ── Menu Manager database ────────────────────────────────────────────────────
+# kolla 2025.1 Horizon uses memcached sessions and does NOT always configure
+# DATABASES in local_settings.py.  menu_manager needs a SQL backend to store
+# label overrides.  Fill in HOST and PASSWORD and uncomment the block below.
+#
+#   HOST     = kolla_internal_vip_address  (from globals.yml)
+#   PASSWORD = horizon_database_password   (from /etc/kolla/passwords.yml)
+#
+# After uncommenting, run once per deployment:
+#   docker exec horizon bash -c \
+#     "source /var/lib/kolla/venv/bin/activate && \
+#      python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"
+#
+# try:
+#     _db_ok = bool(DATABASES.get('default', {}).get('ENGINE'))
+# except NameError:
+#     _db_ok = False
+# if not _db_ok:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.mysql',
+#             'NAME': 'horizon',
+#             'USER': 'horizon',
+#             'PASSWORD': '',   # <-- horizon_database_password from passwords.yml
+#             'HOST': '',       # <-- kolla_internal_vip_address from globals.yml
+#             'OPTIONS': {'charset': 'utf8'},
+#         }
+#     }
+
 # ── CAT Industrial Dark theme ─────────────────────────────────────────────────
 AVAILABLE_THEMES = [
     ('default',  'Default',              'themes/default'),

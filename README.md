@@ -174,6 +174,14 @@ Check that `enable_horizon_heat: "yes"` is in `globals.yml`. Run `kolla-ansible 
 **Theme not applying / still shows default**  
 Confirm `/etc/kolla/config/horizon/local_settings` exists on the deploy host and contains the `AVAILABLE_THEMES` / `DEFAULT_THEME` lines. Rerun reconfigure.
 
+**Menu Labels panel shows 500 / "DATABASES is improperly configured"**  
+kolla 2025.1 Horizon uses memcached sessions and does not configure a SQL `DATABASES` backend by default. `menu_manager` needs one to store label overrides.
+
+1. Open `docker/kolla-local-settings` and uncomment the `DATABASES` block near the top.
+2. Fill in `HOST` (`kolla_internal_vip_address` from `globals.yml`) and `PASSWORD` (`horizon_database_password` from `/etc/kolla/passwords.yml` on the deploy host).
+3. Copy the updated file to `/etc/kolla/config/horizon/local_settings` on the deploy host and run `kolla-ansible reconfigure -t horizon`.
+4. Run the migration once: `docker exec horizon bash -c "source /var/lib/kolla/venv/bin/activate && python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"`
+
 **Menu Labels panel shows "table not found" error**  
 Run the migration command in Step 5.
 
