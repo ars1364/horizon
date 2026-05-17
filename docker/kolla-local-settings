@@ -8,7 +8,7 @@
 
 # ── Menu Manager app ──────────────────────────────────────────────────────────
 # Required for the dynamic label admin panel and the sidebar template tag.
-INSTALLED_APPS = list(INSTALLED_APPS) + ['openstack_dashboard.menu_manager']
+INSTALLED_APPS = [a for a in INSTALLED_APPS if a != 'openstack_dashboard.menu_manager'] + ['openstack_dashboard.menu_manager']
 
 # ── Menu Manager database ────────────────────────────────────────────────────
 # kolla 2025.1 Horizon uses memcached sessions and does NOT always configure
