@@ -72,14 +72,15 @@ horizon_custom_themes:
 horizon_default_theme: "cat-dark"
 ```
 
-### 3b. local_settings override
+### 3b. Custom settings override
 
 This file activates `menu_manager`, sets the default theme, and (if needed) configures the database.
-kolla-ansible appends it to the generated `local_settings.py` on every deploy/reconfigure.
+kolla-ansible places `_*.py` files from `/etc/kolla/config/horizon/` into `local_settings.d/` and
+sources them after the generated `local_settings.py` on every deploy/reconfigure.
 
 ```bash
 mkdir -p /etc/kolla/config/horizon
-cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings
+cp docker/kolla-local-settings /etc/kolla/config/horizon/_9999-custom-settings.py
 ```
 
 **Database configuration (required for Menu Label Manager):**
@@ -106,7 +107,7 @@ DATABASES = {
 ```
 
 The `kolla-local-settings` file ships with this block commented out. Uncomment it and fill in
-`HOST` and `PASSWORD`, then copy it to `/etc/kolla/config/horizon/local_settings`.
+`HOST` and `PASSWORD`, then copy it to `/etc/kolla/config/horizon/_9999-custom-settings.py`.
 
 ---
 
@@ -177,7 +178,7 @@ Superusers can rename any sidebar group or panel label at runtime via
 via a template tag in the sidebar. Changes are cached for 30 seconds.
 
 Requires:
-- `DATABASES` configured in `local_settings` (Step 3b)
+- `DATABASES` configured in `_9999-custom-settings.py` (Step 3b)
 - `manage.py migrate menu_manager` run at least once (Step 5)
 
 ### LD_ panel renames
@@ -210,7 +211,7 @@ Check that `enable_horizon_heat: "yes"` is in `globals.yml`. Run `kolla-ansible 
 The container's startup script (`extend_start.sh`) activates heat panels only when this env var is passed.
 
 **Theme not applying / still shows default**  
-Confirm `/etc/kolla/config/horizon/local_settings` exists on the deploy host and contains the
+Confirm `/etc/kolla/config/horizon/_9999-custom-settings.py` exists on the deploy host and contains the
 `AVAILABLE_THEMES` / `DEFAULT_THEME` lines. Rerun reconfigure.
 
 **Menu Labels page shows 500 / "DATABASES is improperly configured"**  
@@ -219,7 +220,7 @@ kolla 2025.1 Horizon does not configure a SQL database backend by default.
 1. Open `docker/kolla-local-settings`, find the `DATABASES` block, and uncomment it.
 2. Fill in `HOST` (`kolla_internal_vip_address` from `globals.yml`) and `PASSWORD`
    (`horizon_database_password` from `/etc/kolla/passwords.yml`).
-3. Copy to deploy host: `cp docker/kolla-local-settings /etc/kolla/config/horizon/local_settings`
+3. Copy to deploy host: `cp docker/kolla-local-settings /etc/kolla/config/horizon/_9999-custom-settings.py`
 4. Reconfigure: `kolla-ansible reconfigure -t horizon`
 5. Run migration: `docker exec horizon bash -c "source /var/lib/kolla/venv/bin/activate && python /var/lib/kolla/venv/bin/manage.py migrate menu_manager --noinput"`
 

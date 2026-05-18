@@ -1,7 +1,8 @@
 # Deploy-host Horizon settings override for kolla-ansible.
 #
-# Copy this file to /etc/kolla/config/horizon/local_settings on the deploy host.
-# kolla-ansible appends it to the generated local_settings.py on every deploy/reconfigure.
+# Copy this file to /etc/kolla/config/horizon/_9999-custom-settings.py on the deploy host.
+# kolla-ansible places drop-in files from /etc/kolla/config/horizon/_*.py into
+# local_settings.d/ and sources them after the generated local_settings.py on every deploy/reconfigure.
 #
 # Apply with:
 #   kolla-ansible reconfigure -t horizon

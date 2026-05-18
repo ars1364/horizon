@@ -64,7 +64,12 @@ COPY openstack_dashboard/themes/cat-dark/ ${SP}/openstack_dashboard/themes/cat-d
 # Just ensure the migration file is present — the DB isn't available at build time.
 # (Already copied as part of menu_manager above.)
 
-# ── 8. Pre-enable heat-dashboard ─────────────────────────────────────────────
+# ── 8. mysqlclient — required by django.db.backends.mysql in custom settings ──
+# collectstatic (and any Django startup) fails with ModuleNotFoundError if this
+# package is absent and DATABASES uses the mysql backend.
+RUN ${VENV}/bin/pip install --no-cache-dir mysqlclient
+
+# ── 9. Pre-enable heat-dashboard ─────────────────────────────────────────────
 # Copy heat_dashboard's enabled panel files into local/enabled/ so the
 # Orchestration panels are present in the image regardless of ENABLE_HEAT.
 # kolla's extend_start.sh will re-copy them (idempotent) when enable_horizon_heat
